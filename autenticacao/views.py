@@ -1,11 +1,14 @@
 from django.http import response, HttpResponse
 from django.shortcuts import redirect, render
+from django.contrib import auth
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.messages import constants
 
 def cadastro(request):
     if request.method == 'GET':
+        if request.user.is_authenticated: 
+            return redirect('/')
         return render(request, 'cadastro.html')
     elif request.method == 'POST':
         username = request.POST.get('username')
@@ -22,7 +25,7 @@ def cadastro(request):
             return redirect('/auth/cadastro')
 
         try:
-            user = User(username= username, email= email, password= senha)
+            user = User.objects.create_user(username= username, email= email, password= senha)
             user.save()
             messages.add_message(request, constants.SUCCESS, 'Cadastro realizado com sucesso')
             return redirect('/auth/logar')
@@ -33,4 +36,24 @@ def cadastro(request):
 
 
 def logar(request):
-    return HttpResponse('logar')
+    if request.method == 'GET':
+        if request.user.is_authenticated: 
+            return redirect('/')
+        return render(request, 'logar.html')
+    elif request.method == 'POST':
+        username = request.POST.get('username')
+        senha = request.POST.get('senha')
+
+        usuario = auth.authenticate(username=username, password =senha)
+        if not usuario:
+            messages.add_message(request, constants.ERROR, 'Username ou senha inválidos')
+            return redirect('/auth/logar')
+        else:
+            auth.login(request, usuario)
+            return redirect('/')
+
+
+def sair(request):
+    auth.logout(request)
+    return redirect('/auth/logar')
+    
